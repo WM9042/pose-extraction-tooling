@@ -1,0 +1,173 @@
+@startuml class_diagram
+
+
+
+together {
+    abstract class InputSource{
+        - input_path: Union[str, int]
+        - _consumed : bool
+
+        + get_frame() -> Optional[np.ndarray]:
+            
+        + get_frame_info() -> Optional[Dict[str, Any]]: 
+
+        + is_exhausted(self) -> bool: 
+            
+        + cleanup(self) -> None: 
+        
+    
+    }
+    class ImageInputSource {
+        - input_path: Union[str, int]
+            - _consumed : bool
+
+            + get_frame() -> Optional[np.ndarray]:
+                
+            + get_frame_info() -> Optional[Dict[str, Any]]: 
+
+            + is_exhausted(self) -> bool: 
+                
+            + cleanup(self) -> None: 
+    }
+
+    class VideoInputSource{
+        - input_path: Union[str, int]
+        - _consumed : bool
+
+        + get_frame() -> Optional[np.ndarray]:
+            
+        + get_frame_info() -> Optional[Dict[str, Any]]: 
+
+        + is_exhausted(self) -> bool: 
+            
+        + cleanup(self) -> None: 
+    }
+
+    class WebcamInputSource{
+        - input_path: Union[str, int]
+        - _consumed : bool
+
+        + get_frame() -> Optional[np.ndarray]:
+            
+        + get_frame_info() -> Optional[Dict[str, Any]]: 
+
+        + is_exhausted(self) -> bool: 
+            
+        + cleanup(self) -> None: 
+    }
+}        
+
+
+ImageInputSource .up.|> InputSource : Implements
+VideoInputSource .up.|> InputSource : Implements
+WebcamInputSource .up.|> InputSource : Implements
+
+
+together {
+    abstract class PoseFramework{
+        - pose_config_path: Optional[str]
+        - pose_checkpoint_path: Optional[str]
+
+        + get_pose_estimate(frame: np.ndarray, bounding_box: Optional[BoundingBox]) -> PoseResult
+        - _load_framework() -> None
+        - _load_model(pose_config_path: Optional[str], pose_checkpoint_path: Optional[str]) -> Optional[PoseEstimatorModel]
+    }
+    class MMPosePoseFramework {
+        - pose_config_path: Optional[str]
+        - pose_checkpoint_path: Optional[str]
+
+        + get_pose_estimate(frame: np.ndarray, bounding_box: Optional[BoundingBox]) -> PoseResult
+        - _load_framework() -> None
+        - _load_model(pose_config_path: Optional[str], pose_checkpoint_path: Optional[str]) -> Optional[PoseEstimatorModel]
+    }
+
+    class MediaPipePoseFramework {
+        - pose_config_path: Optional[str]
+        - pose_checkpoint_path: Optional[str]
+
+        + get_pose_estimate(frame: np.ndarray, bounding_box: Optional[BoundingBox]) -> PoseResult
+        - _load_framework() -> None
+        - _load_model(pose_config_path: Optional[str], pose_checkpoint_path: Optional[str]) -> Optional[PoseEstimatorModel]
+    }
+
+}
+
+MMPosePoseFramework .up.|> PoseFramework : Implements
+MediaPipePoseFramework .up.|> PoseFramework : Implements
+
+together {
+    abstract class DetectionFramework{
+        - detection_config_path: Optional[str]
+        - detection_checkpoint_path: Optional[str]
+
+        + get_detection_estimate(frame: np.ndarray) -> BoundingBox
+        - _load_framework() -> None
+        - _load_model() -> Optional[Any]
+    }
+
+    class MMPoseDetectionFramework {
+        - detection_config_path: Optional[str]
+        - detection_checkpoint_path: Optional[str]
+
+        + get_detection_estimate(frame: np.ndarray) -> BoundingBox
+        - _load_framework() -> None
+        - _load_model() -> Optional[Any]
+    }
+}
+
+
+MMPoseDetectionFramework ..|> DetectionFramework : Implements
+
+class PoseProcessor{
+    - input_source: InputSource
+    - pose_framework: PoseFramework
+    - detection_framework: Optional[DetectionFramework]
+
+    + process(output_dir_path: str, processing_mode: str) -> ExtractionSession
+}
+
+class JSONOutputHandler {
+    + save_results(self, session: ExtractionSession, output_dir_path: str, input_file_path: str) -> None
+    - _session_to_dict(self, session: ExtractionSession) -> Dict[str, Any]
+    - _frame_result_to_dict(self, frame_result) -> Dict[str, Any]
+    - _pose_result_to_dict(self, pose_result) -> Dict[str, Any]
+    - _convert_keypoints(self, keypoints) -> Any
+    - _bounding_box_to_dict(self, bbox) -> Dict[str, Any]
+}
+together {
+    class PoseFrameworkFactory{
+        + create_pose_framework(pose_framework_name: str, pose_config_path: Optional[str], pose_checkpoint_path: Optional[str]) -> PoseFramework
+    }
+
+    class DetectionFrameworkFactory{
+        + create_detection_framework(detection_framework_name: str, detection_config_path: Optional[str], detection_checkpoint_path: Optional[str]) -> DetectionFramework
+    }
+
+    class InputSourceFactory{
+    + create_input_source(input_path: str) -> InputSource
+    }
+}
+
+
+class main_cli{
++ main() -> int
+}
+
+class ArgumentParser {
+    parse_args() -> Namespace
+}
+
+main_cli -down-> ArgumentParser : Depends on
+main_cli -down-> JSONOutputHandler : Depends on
+main_cli -down-> PoseFrameworkFactory : Depends on
+main_cli -down-> DetectionFrameworkFactory : Depends on
+main_cli -down-> InputSourceFactory : Depends on
+main_cli -down-> PoseProcessor : Depends on
+
+InputSource o-up- PoseProcessor
+PoseFramework o-up- PoseProcessor
+DetectionFramework o-up- PoseProcessor
+
+
+
+

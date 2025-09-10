@@ -1,0 +1,28 @@
+@startuml data_class
+
+class ExtractionSession {
+    - frame_results : List[FrameResults]
+}
+
+class FrameResults {
+    - pose_results : List[PoseResult]
+}
+
+class PoseResult {
+    - bounding_box : Optional[BoundingBox]
+    - raw_keypoints : Any 
+}
+
+class BoundingBox {
+    - x : float
+    - y : float 
+    - width : float 
+    - height : float 
+    - confidence : float 
+}
+
+ExtractionSession *-- FrameResults : contains
+FrameResults *-- "1..*" PoseResult : contains
+PoseResult o-- "0..1" BoundingBox : may have
+
+@enduml
